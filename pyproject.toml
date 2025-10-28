@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xcid"
+version = "0.1.0"
+description = "XC-ID: X Chromosome inactivation IDentifier"
+readme = "README.md"
+dependencies = ["numpy", "pandas", "scipy", "statsmodels", "pysam"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
