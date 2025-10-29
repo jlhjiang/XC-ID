@@ -28,9 +28,19 @@ pip install -e .
 
 ## Usage
 
-XC-ID can be used both in .ipynb or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb. For CLI:
+XC-ID can be used both in .ipynb or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb. For CLI, run:
 
-add 
+```bash
+xcid \
+  --vcf ../data/variants.vcf \
+  --bam ../data/WASP_X.bam \
+  --cells ../data/barcodes.txt \
+  --chrom X \
+  --out-results results.tsv \
+  --out-escape escape.tsv \
+  --n-boot 100 --n-jobs -1 --verbose 2 \
+  --seed 206
+  ```
 
 ## Basic preprocessing
 
