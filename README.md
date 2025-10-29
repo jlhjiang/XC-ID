@@ -28,16 +28,25 @@ pip install -e .
 
 ## Usage
 
-XC-ID can be used both in .ipynb or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb. For CLI, run:
+XC-ID can be used both in .ipynb or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb.
+
+        Python API
+        >>> x = XCID(
+        ...     vcf_files=['x.vcf.gz'],
+        ...     bam_files=['Aligned.sortedByCoord.out.bam'],
+        ...     cells_file='cells.txt',
+        ...     chromosome='chrX',
+        ...     min_per_snp=5, min_per_cell=2,
+        ...     n_boot=200, n_jobs=-1, rand_seed=1234)
+        >>> res = x.run_all()
+        >>> res.head()
 
 ```bash
 xcid \
-  --vcf ../data/variants.vcf \
-  --bam ../data/WASP_X.bam \
-  --cells ../data/barcodes.txt \
+  --vcf PATH/TO/VCF \
+  --bam PATH/TO/BAM \
   --chrom X \
   --out-results results.tsv \
-  --out-escape escape.tsv \
   --n-boot 100 --n-jobs -1 --verbose 2 \
   --seed 206
   ```
@@ -62,7 +71,7 @@ STAR --genomeDir "$GENOME_DIR" \
     --soloCBwhitelist "$WHITELIST" \
     --outSAMtype BAM SortedByCoordinate \
     --outFileNamePrefix WASP_ \
-    --threads "$THREADS"m\
+    --threads "$THREADS"\
     --waspOutputMode SAMtag \
     --outSAMattributes vA vG NH HI AS nM CB UB vW 
 samtools index WASP_Aligned.sortedByCoord.out.bam

@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     filt.add_argument("--min-per-cell", type=int, default=2, help="Min SNP counts per cell to keep (default: 2).")
 
     sa = p.add_argument_group("Simulated annealing")
-    sa.add_argument("--temp", type=int, default=None, help="Initial temperature (default: n_pos * 1000).")
+    sa.add_argument("--temp", type=float, default=None, help="Initial temperature (default: n_pos * 1000).")
     sa.add_argument("--alpha", type=float, default=None, help="Cooling rate (default auto: 0.995/0.999).")
     sa.add_argument("--max-iter", type=int, default=None, help="Max iterations (default: max(15000, 20*n_pos)).")
     sa.add_argument("--n-init", type=int, default=1, help="Number of random initializations (default: 1).")
