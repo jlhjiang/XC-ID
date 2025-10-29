@@ -95,7 +95,7 @@ bcftools mpileup \
   -f "$GENOME_FASTA" \
   -Ou \
 | bcftools view \
--i 'GT="0/1" && QUAL>=30'
+-i 'GT="0/1" && QUAL>=20'
 -Oz -o "variants.vcf.gz"
 && bcftools index "variants.vcf.gz"
 

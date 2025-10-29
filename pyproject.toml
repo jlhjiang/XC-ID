@@ -7,7 +7,10 @@ name = "xcid"
 version = "0.1.0"
 description = "XC-ID: X Chromosome inactivation IDentifier"
 readme = "README.md"
-dependencies = ["numpy", "pandas", "scipy", "statsmodels", "pysam", "joblib", "matplotlib", "ipykernel"]
+dependencies = ["numpy", "pandas", "scipy", "statsmodels", "pysam", "joblib", "matplotlib", "ipykernel", "argparse"]
+
+[project.scripts]
+xcid = "xcid.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
