@@ -16,18 +16,18 @@ def build_parser() -> argparse.ArgumentParser:
     io.add_argument("--vcf", nargs="+", required=True, help="One or more VCF files (chrX variants).")
     io.add_argument("--bam", nargs="+", required=True, help="One or more BAM files (STAR+WASP aligned).")
     io.add_argument("--cells", default=None, help="Optional file of allowed cell barcodes (one per line).")
-    io.add_argument("--chrom", default="chrX", help='Chromosome name in BAM/VCF (e.g., "chrX" or "X").')
+    io.add_argument("--chrom", default="chrX", help='Chromosome name in BAM/VCF (default: "chrX").')
     io.add_argument("--blacklist", default=None, help="Optional file of SNP positions to exclude (one 1-based pos per line).")
 
     out = p.add_argument_group("Outputs")
     out.add_argument("--out-results", required=True, help="Path to write results table TSV.")
-    out.add_argument("--out-escape", default=None, help="Optional TSV of escape candidates.")
 
     filt = p.add_argument_group("Filtering")
     filt.add_argument("--min-per-snp", type=int, default=5, help="Min UMIs per SNP to keep (default: 5).")
     filt.add_argument("--min-per-cell", type=int, default=2, help="Min SNP counts per cell to keep (default: 2).")
 
-    sa = p.add_argument_group("Simulated annealing")
+    sa = p.add_argument_group("Simulated annealing" \
+    "(do not change these unless you know what you are doing)")
     sa.add_argument("--temp", type=float, default=None, help="Initial temperature (default: n_pos * 1000).")
     sa.add_argument("--alpha", type=float, default=None, help="Cooling rate (default auto: 0.995/0.999).")
     sa.add_argument("--max-iter", type=int, default=None, help="Max iterations (default: max(15000, 20*n_pos)).")
@@ -40,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     misc = p.add_argument_group("Reproducibility")
     misc.add_argument("--seed", type=int, default=None, help="Random seed for RNG streams.")
+
+    exp = p.add_argument_group("Experimental" \
+    "(for development/testing purposes only)")
+    exp.add_argument("--out-escape", default=None, help="Optional TSV of escape candidates.")
+
     return p
 
 def main(argv=None) -> int:

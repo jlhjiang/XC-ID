@@ -8,11 +8,12 @@ It leverages allele-specific expression patterns at heterozygous X-linked SNPs t
 
 ## Overview
 XC-ID performs:
-- **Allele-specific read parsing** from STAR+WASP–aligned BAMs  
-- **Haplotype inference** using a simulated annealing–based optimization framework  
-- **Bootstrap-based confidence estimation** for robust X lineage assignment  
+1. **Allele-specific read parsing** from STAR+WASP–aligned BAMs --> Cells X SNPs counts matrices
+2. **Haplotype inference** using a simulated annealing–based optimization algorithm
+3. **Bootstrap-based confidence estimation** for robust X lineage assignment  
+Finally, XC-ID generates a results table that can be integrated with cell metadata in single-cell toolkits such as Scanpy or seurat.
 
-Each sample or individual should be processed independently.
+Each sample/individual should be processed independently.
 
 ---
 
@@ -25,31 +26,37 @@ cd XC-ID
 pip install -e .
 ```
 
-
 ## Usage
 
-XC-ID can be used both in .ipynb or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb.
+XC-ID can be used both in Python API or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb.
+The most basic usage is:
 
         Python API
         >>> x = XCID(
         ...     vcf_files=['x.vcf.gz'],
         ...     bam_files=['Aligned.sortedByCoord.out.bam'],
-        ...     cells_file='cells.txt',
-        ...     chromosome='chrX',
-        ...     min_per_snp=5, min_per_cell=2,
-        ...     n_boot=200, n_jobs=-1, rand_seed=1234)
+                    )
         >>> res = x.run_all()
         >>> res.head()
+
 
 ```bash
 xcid \
   --vcf PATH/TO/VCF \
   --bam PATH/TO/BAM \
-  --chrom X \
-  --out-results results.tsv \
-  --n-boot 100 --n-jobs -1 --verbose 2 \
-  --seed 206
-  ```
+  --out-results results.tsv
+```
+
+### Useful parameters
+
+It is often helpful to increase the number of bootstraps (default 100) to 500 or 1000 for better sensitivity in "lower quality" datasets. Try this if you are getting lots of `unknown` cell labels in the results.
+
+This can achieved by changing the `n_boot` parameter in Python API and `--n-boot` in CLI.
+
+You can also finetune the number of jobs (default -1 or all available threads) and set a random seed.
+Python API: `n_jobs`, `rand_seed`
+CLI: `--n-jobs`, `--rand-seed`
+
 
 ## Basic preprocessing
 

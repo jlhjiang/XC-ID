@@ -136,10 +136,16 @@ class XCID:
     def results_table(self) -> pd.DataFrame:
         '''Return a table of results with columns: cell, score, p_value, p_adj, XCI_status.'''
         self._require(self.sa_score is not None, "Call assign_haplotypes() first.")
-        self.results = make_results(cells=self.cells,
+        results = make_results(cells=self.cells,
                                     score=self.sa_score,
                                     score_array=self.score_array
                                     )
+        
+        if results['XCI_status'].isin(['X0', 'X1']).sum()/len(results) < 0.2:
+            log.warning("Less than 20%% of cells were confidently assigned."
+                        "This may indicate low data quality: **consider increasing n_boot to 500 or 1000**")
+            
+        self.results = results
         return self.results
 
     def haplotype_matrices(self) -> Tuple[np.ndarray, np.ndarray]:
