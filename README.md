@@ -1,23 +1,28 @@
 # XC-ID
-**X Chromosome Inactivation IDentifier**
+**X Chromosome inactivation IDentifier**
 
 Jennifer Jiang, Jesse Gillis (2025)
 
-XC-ID is a computational tool for identifying the per-cell active X lineage in single-cell RNA-seq (scRNA-seq) data from female mammals.  
-It leverages allele-specific expression patterns at heterozygous X-linked SNPs to assign each cell to its active X chromosome (X₀ or X₁).
+## Overview
+**XC-ID** is a computational tool for identifying the *active X chromosome lineage* (maternal or paternal haplotype) in **single-cell RNA-seq (scRNA-seq)** data from female mammals.  
+It infers per-cell X-chromosome activation states using allele-specific expression patterns at heterozygous X-linked SNPs.
 
-XC-ID can be used in both Python API and as a command-line tool
+XC-ID is available both as:
+- a **Python API** (for integration with Jupyter or Scanpy workflows), and  
+- a **command-line interface** for batch processing.
 
 ---
 
-## Overview
-XC-ID performs:
-1. **Allele-specific read parsing** from STAR+WASP–aligned BAMs --> cells X SNPs counts matrices
-2. **Haplotype inference** using a simulated annealing–based optimization algorithm
-3. **Bootstrap-based confidence estimation** for robust X lineage assignment  
-Finally, XC-ID generates a results table that can be readily integrated with cell metadata in single-cell toolkits such as Scanpy or seurat.
+## Features
 
-Currently, XC-ID has been tested on 10X v2, v3, GEM-X, and SmartSeq technology. It has also been successfully implemented in non-human/mice mammalian species.
+XC-ID performs the following key steps:
+
+1. **Allele-specific read parsing** – extracts per-cell, per-SNP counts from STAR+WASP–aligned BAM files.  
+2. **Haplotype inference and phasing** – assigns each cell’s active X haplotype using a simulated annealing optimization.  
+3. **Bootstrap-based confidence estimation** – quantifies assignment robustness through iterative resampling.
+
+The output table integrates with standard single-cell analysis frameworks (e.g., **Scanpy**, **Seurat**) metadata.  
+XC-ID has been tested across 10X Genomics (v2, v3, GEM-X) and SmartSeq platforms, and in both human and non-human mammalian datasets.
 
 ---
 
@@ -34,47 +39,67 @@ pip install -e .
 
 ## Usage
 
-### Preprocessing
+### 1. Preprocessing
 
-XC-ID required the input of BAMs with WASP tags and the VCF files with variant positions to consider for the phasing algorithm.
-Preprocessing steps can vary depending on what data you have on hand: at the simplest, it only requires one STAR+WASP alignment step. 
+XC-ID requires:
+- **BAM files** aligned with STAR using WASP tagging (`--waspOutputMode SAMtag`)  
+- **VCF files** containing heterozygous SNP positions for phasing
 
-We provide simple preprocessing guidelines at [].
+Preprocessing pipelines can vary depending on your data type. A basic setup only requires a single STAR+WASP alignment step.  
+Detailed preprocessing instructions are available in the [documentation](#).
 
-### Running the XC-ID
+### 2. Running XC-ID
 
-XC-ID can be used both in Python API or as a command-line tool. It can be conveniently implemented downstream of QC steps, see notebooks/tutorial.ipynb. Each sample should be processed independently.
+You can run XC-ID via the **Python API** or **CLI**. The most basic use example is:
 
-The most basic usage is:
+#### **Python API**
+```python
+from xcid import XCID
 
-        Python API
-        >>> x = XCID(
-        ...     vcf_files=['x.vcf.gz'],
-        ...     bam_files=['Aligned.sortedByCoord.out.bam'],
-                    )
-        >>> res = x.run_all()
-        >>> res.head()
-
-
-```bash
-xcid \
-  --vcf PATH/TO/VCF \
-  --bam PATH/TO/BAM \
-  --out-results PATH/TO/RESULTS.tsv
+xc = XCID(
+    vcf_files=["/path/to/variants.vcf"],
+    bam_files=["/path/to/aligned.bam"]
+)
+results = x.run_all()
+results.head()
 ```
 
-### Useful parameters
+#### **Command-line**
+```bash
+xcid   --vcf /path/to/variants.vcf   --bam /path/to/aligned.bam   --out-results /path/to/results.tsv
+```
 
-It is often helpful to increase the number of bootstraps (default 100) to 500 or 1000 for better sensitivity in "lower quality" datasets. Try this if you are getting lots of `unknown` cell labels in the results. This can achieved by changing the `n_boot` parameter in Python API and `--n-boot` in CLI.
+> You may provide multiple BAM or VCF files (comma-separated) for the same sample.
 
-You can also finetune the number of jobs (default -1 or all available threads) and set a random seed.
-Python API: `n_jobs`, `rand_seed`
-CLI: `--n-jobs`, `--rand-seed`
+### 3. Useful parameters
+
+It is often helpful to increase the number of bootstraps (default 100) to 500 or 1000 for better sensitivity in "lower quality" datasets. Try this if you are getting lots of `unknown` cell labels in the results.
+
+| Parameter | API argument | CLI flag | Description |
+|------------|---------------|-----------|--------------|
+| Number of bootstraps | `n_boot` | `--n-boot` | Increase to 500–1000 for low-quality datasets |
+| Number of parallel jobs | `n_jobs` | `--n-jobs` | Default = -1 (use all available cores) |
+| Random seed | `rand_seed` | `--rand-seed` | Ensures reproducibility |
+
+See full parameter list with:
+```bash
+xcid --help
+```
+
+### Output
+
+XC-ID outputs a results table with columns:
+1. cell_id: the cell barcodes
+2. score: the haplotype ratio score
+3. p_value: p-values from a binomial test on bootstrapped scores
+4. p_adj: Benjamini-Hochberg adjusted p-values
+5. X_status: the final X chromosome calls from the algorithm
+
+Note that X₀ or X₁ are direction agnostic. For genotyping, refer to the full manual for getting the exact REF/ALT SNP assignment for each X haplotype.
 
 ---
 
 ## Full manual
-### Genotyping & other uses
 
-Reference to the manual here for more detailed explanation, including how to get the exact REF/ALT genotypes, and get putative escape genes/proportions.
+Reference to the manual here [link] for more detailed explanation, including how to get the exact REF/ALT genotypes, and get putative escape genes/proportions.
 
