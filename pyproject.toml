@@ -7,7 +7,7 @@ name = "xcid"
 version = "0.1.0"
 description = "XC-ID: X Chromosome inactivation IDentifier"
 readme = "README.md"
-dependencies = ["numpy", "pandas", "scipy", "statsmodels", "pysam", "joblib", "matplotlib", "ipykernel", "argparse"]
+dependencies = ["numpy", "pandas", "scipy", "statsmodels", "pysam", "joblib",  "argparse"]
 
 [project.scripts]
 xcid = "xcid.cli:main"

@@ -1,5 +1,7 @@
+# specific
 **/WASP_BAM/
 **/cli_test/
+**/escape_table.tsv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
