@@ -89,17 +89,17 @@ xcid --help
 ### Output
 
 XC-ID outputs a results table with columns:
-1. cell_id: the cell barcodes
-2. score: the haplotype ratio score
-3. p_value: p-values from a binomial test on bootstrapped scores
-4. p_adj: Benjamini-Hochberg adjusted p-values
-5. X_status: the final X chromosome calls from the algorithm
+1. **cell_id:** the cell barcodes
+2. **score:** the haplotype ratio score
+3. **p_value:** p-values from a binomial test on bootstrapped scores
+4. **p_adj:** Benjamini-Hochberg adjusted p-values
+5. **X_status: the final X chromosome calls from the algorithm**
 
-Note that X₀ or X₁ are direction agnostic. For genotyping, refer to the full manual for getting the exact REF/ALT SNP assignment for each X haplotype.
+Note that X₀ or X₁ are direction agnostic. For genotyping, refer to the full manual for determining the exact REF/ALT SNP assignment for each X haplotype.
 
 ---
 
 ## Full manual
 
-Reference to the manual here [link] for more detailed explanation, including how to get the exact REF/ALT genotypes, and get putative escape genes/proportions.
+Reference to the manual [link] for more detailed explanation, including how to extract the exact REF/ALT genotypes, and get putative escape genes/proportions.
 

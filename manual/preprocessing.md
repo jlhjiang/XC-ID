@@ -3,26 +3,33 @@ Date Created: 2025-10-31
 
 Here, we provide simple preprocessing pipeline for generating suitable input for the XC-ID algorithm by Jiang and Gillis (2025).
 
-You will need to install **STAR** via pip or bioconda (or a package manager of your choice).
+You will need to install **STAR**.
 
 ---
 
 ## What should I do?
 1. I have no variant information (VCF).
 
-We will need to call variants prior to using STAR+WASP. We will align the FASTQ sequences using base STAR, and call variants using bcftools. Start with step 1.
+You will need to call variants prior to using STAR+WASP. We will align the FASTQ sequences using base STAR, and call variants using bcftools. Start with step 1.
 
 **For human data**: this step can be bypassed by using common SNP positions found in databases such as 1000 Genomes or gnomAD.
 **For mice data**: this step can be bypassed by using tools to compare genotypes between two strains and extracting the heterozygous positions.
 
 2. I have variant information and/or a list of SNP positions to consider.
 
-We will move directly to unbiased alignment using STAR+WASP.
+See step 3: alignment using STAR+WASP.
 
 ---
 
 ## Optional Step 0: Build reference genome
 It can be beneficial to align to a genome that has the Y and ALT contigs removed. Here is a safe way of doing so:
+
+```bash
+awk '/^>/{keep = ($0 !~ /_alt|_random|chrUn|chrY/)} keep' \
+    GRCh38.primary_assembly.genome.fa > GRCh38_noY_noALT.fa
+
+grep -v -E "_alt|_random|chrUn|chrY" gencode.v47.annotation.gtf > gencode.v47_noY_noALT.gtf
+```
 
 ---
 
