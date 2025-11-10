@@ -3,6 +3,8 @@
 **/cli_test/
 **/escape_table.tsv
 **/refdata/
+**/encode_mouse_cross/
+**/notebooks/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
