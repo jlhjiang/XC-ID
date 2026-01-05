@@ -10,9 +10,9 @@ You will need to install **STAR**.
 ## What should I do?
 1. I have no variant information (VCF).
 
-You will need to call variants prior to using STAR+WASP. We will align the FASTQ sequences using base STAR, and call variants using bcftools. Start with step 1.
+You will need to call variants prior to using STAR+WASP. We will align the FASTQ sequences using base STAR, and call variants using bcftools. Start with step 0 or step 1.
 
-**For human data**: this step can be bypassed by using common SNP positions found in databases such as 1000 Genomes or gnomAD.
+**For human data**: this step can be bypassed by using common SNP positions found in databases such as 1000 Genomes or gnomAD. **We provide a VCF file with common X chromosome variants (allele frequency >= 0.01) from gnomAD: [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf)**
 **For mice data**: this step can be bypassed by using tools to compare genotypes between two strains and extracting the heterozygous positions.
 
 2. I have variant information and/or a list of SNP positions to consider.
@@ -77,7 +77,7 @@ You can then provide the resulting variants.vcf file to STAR+WASP and XC-ID.
 ## Step 3: STAR+WASP allele-specific alignment
 ### Existing variant information.
 
-Assuming you have an existing VCF file with SNPs of interest, which can be common variants (i.e. population frequency >= 0.01) taken from databases such as gnomAD or 1000 Genomes or called de novo from FASTA/FASTQ or BAM files (variant calling).
+Assuming you have an existing VCF file with SNPs of interest, which can be common variants (i.e. population frequency >= 0.01) taken from databases such as gnomAD or 1000 Genomes or called de novo from FASTA/FASTQ or BAM files (variant calling). **We provide a VCF file with common X chromosome variants (allele frequency >= 0.01) from gnomAD: [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf)**
 
 The important parameters to include for STAR is
 ```bash

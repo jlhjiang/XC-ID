@@ -43,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     exp = p.add_argument_group("Experimental" \
     "(for development/testing purposes only)")
+    exp.add_argument("--out-hap-counts", default=None, help="Optional output directory for haplotype count matrices.")
     exp.add_argument("--out-escape", default=None, help="Optional TSV of escape candidates.")
 
     return p
@@ -89,7 +90,14 @@ def main(argv=None) -> int:
         esc = x.escape_table(min_cells=1)
         esc.to_csv(args.out_escape, sep="\t", index=False)
 
-    return 0
+    # Optional: save haplotype count matrices
+    if args.out_hap_counts:
+        Path(args.out_hap_counts).mkdir(parents=True, exist_ok=True)
+        hap0_path = Path(args.out_hap_counts) / "hap0_counts.tsv"
+        hap1_path = Path(args.out_hap_counts) / "hap1_counts.tsv"
+        hap0_counts, hap1_counts = x.filtered_haplotype_matrices()
+        hap0_counts.to_csv(hap0_path, sep="\t")
+        hap1_counts.to_csv(hap1_path, sep="\t")
 
 if __name__ == "__main__":
     raise SystemExit(main())

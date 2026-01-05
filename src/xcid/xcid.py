@@ -60,6 +60,8 @@ class XCID:
     results: Optional[pd.DataFrame] = field(init=False, default=None)
     hap0_counts: Optional[np.ndarray] = field(init=False, default=None)
     hap1_counts: Optional[np.ndarray] = field(init=False, default=None)
+    filt_hap0_counts: Optional[np.ndarray] = field(init=False, default=None)
+    filt_hap1_counts: Optional[np.ndarray] = field(init=False, default=None)
     escape_df: Optional[pd.DataFrame] = field(init=False, default=None)
 
     def __post_init__(self):
@@ -147,6 +149,8 @@ class XCID:
             
         self.results = results
         return self.results
+    
+# ---------- experimental haplotype matrices and escape ----------
 
     def haplotype_matrices(self) -> Tuple[np.ndarray, np.ndarray]:
         '''Return haplotype count matrices (n_cells x n_snps) for reference and alternate alleles.'''
@@ -158,11 +162,32 @@ class XCID:
             )
         return self.hap0_counts, self.hap1_counts
 
+    def filtered_haplotype_matrices(self) -> Tuple[np.ndarray, np.ndarray]:
+        '''Return haplotype count matrices (n_filtered_cells x n_snps) for reference and alternate alleles.'''
+        filt_hap0_counts, filt_hap1_counts = make_haplotype_matrices(
+            self.best_assignment,
+            self.counts_ref,
+            self.counts_alt,
+            )
+        
+        conf_idx = self.results['XCI_status'] != 'unknown'
+        conf_cells = self.results.index[conf_idx]
+        filt_hap0_counts = filt_hap0_counts[conf_idx, :]
+        filt_hap1_counts = filt_hap1_counts[conf_idx, :]
+
+        filt_hap0_counts = pd.DataFrame(filt_hap0_counts, index=conf_cells, columns=self.pos4phasing)
+        filt_hap1_counts = pd.DataFrame(filt_hap1_counts, index=conf_cells, columns=self.pos4phasing)
+
+        self.filt_hap0_counts = filt_hap0_counts
+        self.filt_hap1_counts = filt_hap1_counts
+
+        return self.filt_hap0_counts, self.filt_hap1_counts
+
     def escape_table(self, min_cells: int = 1) -> pd.DataFrame:
         '''Return a table of escape candidates with columns: position, n_escape_cells, active_counts, inactive_counts.'''
         if self.hap0_counts is None or self.hap1_counts is None:
             self.haplotype_matrices()
-        self._require(self.results is not None, "Call results_df() first.")
+        self._require(self.results is not None, "Call results_table() first.")
         self.escape_df = make_escape_df(
             results=self.results,
             hap0_counts=self.hap0_counts,
