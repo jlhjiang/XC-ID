@@ -1,7 +1,6 @@
 # XC-ID
-**X Chromosome inactivation IDentifier**
-
-Jennifer Jiang, Jesse Gillis (2025)
+**XC-ID: De novo identification of the active X chromosome in single-cell RNA-seq**
+[Jennifer Jiang, Jesse Gillis (2025)](https://doi.org/10.64898/2025.12.05.692676)
 
 ## Overview
 **XC-ID** is a computational tool for identifying the *active X chromosome lineage* (maternal or paternal haplotype) in **single-cell RNA-seq (scRNA-seq)** data from female mammals.  
