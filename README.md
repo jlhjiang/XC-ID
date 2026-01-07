@@ -63,6 +63,8 @@ results = x.run_all()
 results.head()
 ```
 
+See the Jupyter Notebook tutorial [here](/manual/tutorial.ipynb)
+
 #### **Command-line**
 ```bash
 xcid   --vcf /path/to/variants.vcf   --bam /path/to/aligned.bam   --out-results /path/to/results.tsv
