@@ -31,6 +31,7 @@ class XCID:
 
     min_per_snp: int = 5 # minimum UMIs per SNP to consider for phasing
     min_per_cell: int = 2 # minimum SNP counts per cell to consider for phasing
+    min_maf: float = 0.1 # minimum minor allele frequency to consider SNPs
     n_boot: int = 100
     n_jobs: int = -1
     verbose: int = 2
@@ -85,6 +86,7 @@ class XCID:
         )
         self.pos4phasing = get_pos_for_phasing(umis=self.umis, 
                                                min_per_snp=self.min_per_snp, 
+                                               min_maf=self.min_maf,
                                                blacklist=self.blacklist,
                                                )
         self.cells, self.counts_ref, self.counts_alt = build_counts_matrix(
