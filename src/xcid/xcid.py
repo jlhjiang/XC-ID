@@ -173,7 +173,7 @@ class XCID:
             )
         
         conf_idx = self.results['XCI_status'] != 'unknown'
-        conf_cells = self.results.index[conf_idx]
+        conf_cells = self.results[conf_idx, 'cell_id'].values
         filt_hap0_counts = filt_hap0_counts[conf_idx, :]
         filt_hap1_counts = filt_hap1_counts[conf_idx, :]
 
