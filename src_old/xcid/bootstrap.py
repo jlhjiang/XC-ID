@@ -6,8 +6,8 @@ from .scoring import get_score
 
 def bootstrap_once(k: int,
                    pos4phasing: list,
-                   sample_idx: np.ndarray,
-                   counts_ref: np.ndarray,
+                   sample_idx: None,
+                   counts_ref: np.ndarray, 
                    counts_alt: np.ndarray,
                    sa_kwargs=None,
                    min_per_cell=2,
@@ -15,13 +15,15 @@ def bootstrap_once(k: int,
                    ):
     '''Perform a single bootstrap iteration for haplotype confidence estimation.'''
 
+    pos_sample = [pos4phasing[i] for i in sample_idx] # extract pos names
+    
     # extract counts for the sample, applying filter
-    count_ref_sample = counts_ref[:, sample_idx]
-    count_alt_sample = counts_alt[:, sample_idx]
+    count_ref_sample = counts_ref[:,sample_idx].copy()
+    count_alt_sample = counts_alt[:,sample_idx].copy()
     total_counts = (count_ref_sample + count_alt_sample)
     filter_mask = total_counts.sum(axis=1) >= min_per_cell
-    count_ref_sample = count_ref_sample[filter_mask, :]
-    count_alt_sample = count_alt_sample[filter_mask, :]
+    count_ref_sample = count_ref_sample[filter_mask,:]
+    count_alt_sample = count_alt_sample[filter_mask,:]
 
     # Run simulated annealing on the sampled counts
     best_assignment_sample, _, _ = simulated_annealing(
@@ -32,9 +34,10 @@ def bootstrap_once(k: int,
 
     # but get the values for all cells
     score_sample = get_score(count_ref_sample, count_alt_sample, best_assignment_sample)
-
+    
     bootstrap_tray = {'k': k,  # store the iteration number
                         'cells_mask': filter_mask,
+                        'pos_sampled': pos_sample,
                         'best_a': best_assignment_sample,
                         'score': score_sample,
                         }
@@ -45,7 +48,7 @@ def bootstrap_variants(pos4phasing: list,
                         counts_ref: np.ndarray, counts_alt: np.ndarray,
                         obs_assignment: np.ndarray,
                         n_boot=100,
-                        min_per_cell=2,
+                        min_per_cell=2, 
                         n_jobs=-1,  # total - 1 number of jobs
                         verbose=2,
                         min_score=0,
@@ -61,9 +64,8 @@ def bootstrap_variants(pos4phasing: list,
     obs_score = get_score(counts_ref, counts_alt, np.array(obs_assignment))
     nonzero_score = (obs_score != 0) & (np.abs(obs_score) >= min_score)
 
-    # boolean fancy-indexing already returns a fresh array, no extra .copy() needed
-    counts_ref_nz = counts_ref[nonzero_score, :]
-    counts_alt_nz = counts_alt[nonzero_score, :]
+    counts_ref_nz = counts_ref[nonzero_score, :].copy()
+    counts_alt_nz = counts_alt[nonzero_score, :].copy()
 
     n_pos = len(pos4phasing)
     sample_idx = rng.choice(n_pos, (n_boot, n_pos), replace=True) # sample index number of snps with replacement
@@ -89,19 +91,16 @@ def bootstrap_variants(pos4phasing: list,
     )
 
     w = (counts_ref_nz + counts_alt_nz).sum(axis=0)
-    obs_assignment = np.asarray(obs_assignment)
 
     score_array = np.full((n_boot, counts_ref.shape[0]), np.nan, dtype=float)
-    for k, r in enumerate(results):
-        # sample_idx[k, :] are the same integer SNP indices used to build this
-        # bootstrap sample, so we can reuse them directly instead of re-deriving
-        # them with an O(n_pos) pos4phasing.index() lookup per sampled position
-        # (which made this loop O(n_boot * n_pos^2) for no reason).
-        pos_indices = sample_idx[k, :]
-        assignment_from_obs = obs_assignment[pos_indices]
+    for r in results:
+        pos_sampled = r['pos_sampled']
+        pos_indices = np.array([pos4phasing.index(pos) for pos in pos_sampled])
+        assignment_from_obs = np.array(obs_assignment)[pos_indices]  # ensure numpy array
         weight = w[pos_indices]
 
-        best_a = np.asarray(r['best_a'])
+        # both arrays
+        best_a = np.array(r['best_a'])
         cell_mask = np.zeros(counts_ref.shape[0], dtype=bool)
         cell_mask[nonzero_score] = r['cells_mask']
 

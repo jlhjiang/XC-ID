@@ -2,7 +2,7 @@ import sys
 import numpy as np
 
 def get_pos_for_phasing(umis=None,
-                        min_maf=0.1, #minimum minor allele frequency to consider for phasing
+                        min_maf=0.1, #minimum minor allele frequency to consider for phasing 
                         min_per_snp=5, #minimum UMIs per position to consider for phasing
                         blacklist=frozenset() #optional addtional blacklisting
                         ):
@@ -14,7 +14,7 @@ def get_pos_for_phasing(umis=None,
         sys.exit("No UMIs provided for filtering.")
 
     print(f"Filtering SNPs based on minimum coverage={min_per_snp}, MAF={min_maf}")
-
+    
     pos4phasing = []
     snp_counts = []
 
@@ -51,47 +51,23 @@ def get_pos_for_phasing(umis=None,
 def build_counts_matrix(cell2allele=None,
                         pos4phasing=None,
                         min_per_cell=2):
-    '''Build REF and ALT counts matrices (n_cells x n_snps) for the given cell2allele dictionary
-    and positions for phasing.
-
-    Per-cell/per-SNP UMI counts are first collected into flat index/value arrays, then scattered
-    into the dense count matrices with a single vectorized assignment (instead of one NumPy
-    scalar write per cell/SNP pair), which is substantially faster for large cell counts.'''
+    '''Build REF and ALT counts matrices (n_cells x n_snps) for the given cell2allele dictionary and positions for phasing.'''
 
     cells = list(cell2allele.keys())
     n_cells = len(cells)
     n_positions = len(pos4phasing)
-    pos_index = {pos: j for j, pos in enumerate(pos4phasing)}
+    counts_ref = np.zeros((n_cells, n_positions), dtype=int)
+    counts_alt = np.zeros((n_cells, n_positions), dtype=int)
 
-    row_idx = []
-    col_idx = []
-    ref_counts = []
-    alt_counts = []
+    pos_index = {pos: j for j, pos in enumerate(pos4phasing)}
 
     for i, cell in enumerate(cells):
         for pos, umi_dict in cell2allele[cell].items():
-            j = pos_index.get(pos)
-            if j is None:
-                continue
-            n_ref = 0
-            for allele in umi_dict.values():
-                if allele == 'ref':
-                    n_ref += 1
-            n_alt = len(umi_dict) - n_ref
-
-            row_idx.append(i)
-            col_idx.append(j)
-            ref_counts.append(n_ref)
-            alt_counts.append(n_alt)
-
-    counts_ref = np.zeros((n_cells, n_positions), dtype=np.int32)
-    counts_alt = np.zeros((n_cells, n_positions), dtype=np.int32)
-    if row_idx:
-        row_idx = np.asarray(row_idx, dtype=np.intp)
-        col_idx = np.asarray(col_idx, dtype=np.intp)
-        counts_ref[row_idx, col_idx] = ref_counts
-        counts_alt[row_idx, col_idx] = alt_counts
-
+            # Only include positions in pos4phasing
+            if pos in pos_index:
+                j = pos_index[pos]
+                counts_ref[i, j] = np.array([1 for allele in umi_dict.values() if allele == 'ref']).sum()
+                counts_alt[i, j] = np.array([1 for allele in umi_dict.values() if allele == 'alt']).sum()
     filter_mask = ((counts_ref+counts_alt).sum(axis=1) >= min_per_cell) # filter for minimum counts in a cell
     print(f"Remaining informative cells: {filter_mask.sum()} out of {n_cells}.")
 
@@ -99,4 +75,4 @@ def build_counts_matrix(cell2allele=None,
     counts_ref = counts_ref[filter_mask,:]
     counts_alt = counts_alt[filter_mask,:]
 
-    return cells, counts_ref, counts_alt
+    return cells, np.asarray(counts_ref, dtype=np.int32), np.asarray(counts_alt, dtype=np.int32)

@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from joblib import Parallel, delayed
 from .scoring import get_score
 
 
@@ -16,11 +18,11 @@ def cell_cost_function_multi(assignment_matrix, counts_ref, counts_alt):
     return cell_cost
 
 
-def simulated_annealing(counts_ref, counts_alt,
+def simulated_annealing(counts_ref, counts_alt, 
                         max_iter=None,
                         pos4phasing=None,
-                        temp=None, alpha=None,
-                        print_interval=True,
+                        temp=None, alpha=0.999, 
+                        print_interval=True, 
                         n_init=1,
                         rng=None,
                         ):
@@ -29,12 +31,15 @@ def simulated_annealing(counts_ref, counts_alt,
     n_pos = len(pos4phasing)
 
     if max_iter is None:
-        max_iter = np.maximum(15000, n_pos * 20).astype(int)
+        max_iter = np.maximum(15000, n_pos * 20).astype(int) 
         # ensure max_iter is at least 15000 or 1000 times the number of positions
     if temp is None:
         temp = n_pos * 1000
-    if alpha is None:
-        alpha = 0.995 if n_pos < 2500 else 0.999
+    
+    if n_pos < 2500:
+        alpha = 0.995
+    else:
+        alpha = 0.999
 
     t_schedule = temp * alpha ** np.arange(max_iter)
 
@@ -43,6 +48,8 @@ def simulated_annealing(counts_ref, counts_alt,
         print(f"Initial temperature: {temp}, cooling rate: {alpha}.")
 
     print_schedule = max_iter // 4
+
+    pos4phasing = np.asarray(pos4phasing)
 
     assignment_matrix = rng.choice([0, 1], size=(n_init, n_pos))
 
@@ -56,7 +63,7 @@ def simulated_annealing(counts_ref, counts_alt,
 
     # precompute the difference in counts
     diff = (counts_ref - counts_alt).astype(np.float32)
-
+    
     for iteration in range(max_iter):
 
         temp = t_schedule[iteration]
@@ -79,7 +86,7 @@ def simulated_annealing(counts_ref, counts_alt,
             cond_accept = np.log(rng.random(n_init)) < (-delta_E / temp)
         else:
             cond_accept = np.zeros(n_init, dtype=bool)
-
+        
         accept = better | (worse & cond_accept)
 
         if accept.any():

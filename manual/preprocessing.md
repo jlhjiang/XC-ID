@@ -1,28 +1,32 @@
 # XC-ID Preprocessing
 Date Created: 2025-10-31
 
-Here, we provide simple preprocessing pipeline for generating suitable input for the XC-ID algorithm by Jiang and Gillis (2025).
+XC-ID needs two inputs per sample:
+1. A **VCF** of heterozygous X-linked SNP positions to phase.
+2. A **BAM** aligned with STAR using WASP allele-specific tagging (`--waspOutputMode SAMtag`).
 
-You will need to install **STAR**.
-
----
-
-## What should I do?
-1. I have no variant information (VCF).
-
-You will need to call variants prior to using STAR+WASP. We will align the FASTQ sequences using base STAR, and call variants using bcftools. Start with step 0 or step 1.
-
-**For human data**: this step can be bypassed by using common SNP positions found in databases such as 1000 Genomes or gnomAD. **We provide a VCF file with common X chromosome variants (allele frequency >= 0.01) from gnomAD: [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf)**
-**For mice data**: this step can be bypassed by using tools to compare genotypes between two strains and extracting the heterozygous positions.
-
-2. I have variant information and/or a list of SNP positions to consider.
-
-See step 3: alignment using STAR+WASP.
+This page walks through generating both. You will need **STAR** and **samtools** installed; if you need to call variants yourself, you will also need **bcftools**.
 
 ---
 
-## Optional Step 0: Build reference genome
-It can be beneficial to align to a genome that has the Y and ALT contigs removed. Here is a safe way of doing so:
+## Which path do I need?
+
+Start here to figure out which steps below actually apply to you.
+
+| Your situation | What to do |
+|---|---|
+| I don't have a VCF of SNP positions yet, and I'm working with **human** data | Skip variant calling — use the provided [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf) (common X chromosome variants, population AF ≥ 0.01), then go straight to **Step 3**. |
+| I don't have a VCF, and I'm working with **mouse** (or other multi-strain) data | Skip variant calling — derive heterozygous positions by comparing genotypes between the two parental strains, then go to **Step 3**. |
+| I don't have a VCF and want to call variants de novo from my own reads | Do **Step 0** (optional) → **Step 1** (alignment) → **Step 2** (variant calling) → **Step 3**. |
+| I already have a VCF of SNP positions (from any source) | Go straight to **Step 3**. |
+
+In short: most users only need **Step 3**. Steps 0–2 are only for building a VCF from scratch when you don't already have one and can't use a public/reference variant set.
+
+---
+
+## Step 0 (optional): Build a cleaned reference genome
+
+Only needed if you're aligning from scratch (Steps 0–2 path above). It can be beneficial to align to a genome with the Y chromosome and ALT/random contigs removed, since reads that would otherwise map ambiguously to X/Y homologous regions can confound allele-specific counting:
 
 ```bash
 awk '/^>/{keep = ($0 !~ /_alt|_random|chrUn|chrY/)} keep' \
@@ -33,8 +37,9 @@ grep -v -E "_alt|_random|chrUn|chrY" gencode.v47.annotation.gtf > gencode.v47_no
 
 ---
 
-## Step 1: Initial Alignment
-(reference STAR manual to adjust according to your library prep method)
+## Step 1: Initial alignment (for de novo variant calling only)
+
+A plain STAR alignment, used only to generate a BAM for variant calling in Step 2. Adjust parameters to your library prep method — see the [STAR manual](https://github.com/alexdobin/STAR) for details.
 
 ```bash
 STAR --genomeDir "$GENOME_DIR" \
@@ -46,47 +51,48 @@ STAR --genomeDir "$GENOME_DIR" \
 samtools index Aligned.sortedByCoord.out.bam
 ```
 
-## Step 2: Call variants
-You can use any variant callers such as bcftools, GATK, FreeBayes, etc... We will use bcftools for high sensitivity in single-cell data.
+## Step 2: Call variants (for de novo variant calling only)
+
+Any variant caller works (bcftools, GATK, FreeBayes, ...). We use **bcftools** below for its sensitivity on single-cell data. This calls heterozygous SNPs on chromosome X and writes them to `variants.vcf`:
 
 ```bash
 bcftools mpileup \
-  -a AD \
-  -f "$GENOME_FASTA" \
-  -q 30 \
-  -r X "Aligned.sortedByCoord.out.bam" \
-  -Ou \
+    -a AD \
+    -f "$GENOME_FASTA" \
+    -q 30 \
+    -r X "Aligned.sortedByCoord.out.bam" \
+    -Ou \
 | bcftools call -mv \
-  -Ou \
+    -Ou \
 | bcftools norm \
-  -m-any \
-  --check-ref w \
-  -f "$GENOME_FASTA" \
-  -Ou \
+    -m-any \
+    --check-ref w \
+    -f "$GENOME_FASTA" \
+    -Ou \
 | bcftools view \
--i 'GT="0/1" && QUAL>=20'
--Oz -o "variants.vcf.gz"
-&& bcftools index "variants.vcf.gz"
+    -i 'GT="0/1" && QUAL>=20' \
+    -Oz -o "variants.vcf.gz"
 
+bcftools index "variants.vcf.gz"
 gunzip variants.vcf.gz
 ```
 
-You can then provide the resulting variants.vcf file to STAR+WASP and XC-ID.
+The resulting `variants.vcf` is the SNP list to pass into Step 3 (as `--varVCFfile`) and, later, into XC-ID (as `--vcf`).
 
+---
 
-## Step 3: STAR+WASP allele-specific alignment
-### Existing variant information.
+## Step 3: STAR+WASP allele-specific alignment (required for everyone)
 
-Assuming you have an existing VCF file with SNPs of interest, which can be common variants (i.e. population frequency >= 0.01) taken from databases such as gnomAD or 1000 Genomes or called de novo from FASTA/FASTQ or BAM files (variant calling). **We provide a VCF file with common X chromosome variants (allele frequency >= 0.01) from gnomAD: [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf)**
+This is the step that produces the BAM XC-ID actually reads. You need a VCF of SNP positions to phase — either the one you built in Step 2, the provided [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf) for human data, or one derived from strain comparison for mouse data.
 
-The important parameters to include for STAR is
+The two STAR parameters that **must** be set for XC-ID to work are:
 ```bash
-    --waspOutputMode SAMtag \
-    --outSAMattributes vA vG NH HI AS nM CB UB vW
+--waspOutputMode SAMtag \
+--outSAMattributes vA vG NH HI AS nM CB UB vW
 ```
-Every other parameter can be adjusted according to the STAR manual.
+These add the `vA`/`vG`/`vW` read tags XC-ID uses for allele-specific counting, plus the `CB`/`UB` cell/UMI barcode tags. Every other STAR parameter can be adjusted freely to match your library prep — see the [STAR manual](https://github.com/alexdobin/STAR).
 
-Example:
+Full example:
 ```bash
 STAR --genomeDir "$GENOME_DIR" \
     --readFilesIn "$READ2_CSV" "$READ1_CSV" \
@@ -95,8 +101,14 @@ STAR --genomeDir "$GENOME_DIR" \
     --soloCBwhitelist "$WHITELIST" \
     --outSAMtype BAM SortedByCoordinate \
     --outFileNamePrefix WASP_ \
-    --threads "$THREADS"\
+    --threads "$THREADS" \
     --waspOutputMode SAMtag \
-    --outSAMattributes vA vG NH HI AS nM CB UB vW 
+    --outSAMattributes vA vG NH HI AS nM CB UB vW
 samtools index WASP_Aligned.sortedByCoord.out.bam
+```
+
+The resulting `WASP_Aligned.sortedByCoord.out.bam` and your `variants.vcf` are exactly the two inputs XC-ID needs:
+
+```bash
+xcid --vcf variants.vcf --bam WASP_Aligned.sortedByCoord.out.bam --out-results results.tsv
 ```

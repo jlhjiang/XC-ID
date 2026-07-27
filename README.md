@@ -56,10 +56,10 @@ You can run XC-ID via the **Python API** or **CLI**. The most basic use example 
 from xcid import XCID
 
 xc = XCID(
-    vcf_files=["/path/to/variants.vcf"],
-    bam_files=["/path/to/aligned.bam"]
+    vcf=["/path/to/variants.vcf"],
+    bam=["/path/to/aligned.bam"],
 )
-results = x.run_all()
+results = xc.run_all()
 results.head()
 ```
 
@@ -67,12 +67,14 @@ See the Jupyter Notebook tutorial [here](/manual/tutorial.ipynb)
 
 #### **Command-line**
 ```bash
-xcid   --vcf /path/to/variants.vcf   --bam /path/to/aligned.bam   --out-results /path/to/results.tsv
+xcid --vcf /path/to/variants.vcf --bam /path/to/aligned.bam --out-results /path/to/results.tsv
 ```
 
-> You may provide multiple BAM or VCF files (comma-separated) for the same sample.
+> You may pass multiple BAM or VCF files (space-separated) for the same sample, e.g. `--bam rep1.bam rep2.bam`. Multiple BAM files are read in parallel.
 
 ### 3. Useful parameters
+
+Python API arguments now match the CLI flag names directly (e.g. `chrom` <-> `--chrom`, `seed` <-> `--seed`), so options translate one-to-one between the two interfaces.
 
 It is often helpful to increase the number of bootstraps (default 100) to 500 or 1000 for better sensitivity in "lower quality" datasets. Try this if you are getting lots of `unknown` cell labels in the results.
 
@@ -80,10 +82,16 @@ You can also finetune the haplotype counts matrices by providing a filtered cell
 
 | Parameter | API argument | CLI flag | Description |
 |------------|---------------|-----------|--------------|
+| VCF file(s) | `vcf` | `--vcf` | One or more VCF files with heterozygous SNP positions |
+| BAM file(s) | `bam` | `--bam` | One or more STAR+WASP aligned BAM files |
+| Chromosome | `chrom` | `--chrom` | Chromosome name as it appears in the BAM/VCF (default: `chrX`) |
+| Filtered cells | `cells` | `--cells` | Allowed cell barcodes for constructing the counts matrices |
 | Number of bootstraps | `n_boot` | `--n-boot` | Increase to 500–1000 for low-quality datasets |
-| Number of parallel jobs | `n_jobs` | `--n-jobs` | Default = -1 (use all available cores) |
-| Random seed | `rand_seed` | `--rand-seed` | Ensures reproducibility |
-| Filtered cells | `cells_file` | `--cells` | Allowed cell barcodes for constructing the counts matrices |
+| Number of parallel jobs | `n_jobs` | `--n-jobs` | Default = -1 (use all available cores); also parallelizes reading multiple BAM files |
+| Random seed | `seed` | `--seed` | Ensures reproducibility |
+| Min UMIs per SNP | `min_per_snp` | `--min-per-snp` | Minimum UMIs covering a SNP to keep it for phasing (default: 5) |
+| Min counts per cell | `min_per_cell` | `--min-per-cell` | Minimum SNP counts in a cell to keep it (default: 2) |
+| Min minor allele frequency | `min_maf` | `--min-maf` | Minimum minor allele frequency to keep a SNP (default: 0.1) |
 
 See full parameter list with:
 ```bash
@@ -97,7 +105,7 @@ XC-ID outputs a results table with columns:
 2. **score:** the haplotype ratio score
 3. **p_value:** p-values from a binomial test on bootstrapped scores
 4. **p_adj:** Benjamini-Hochberg adjusted p-values
-5. **X_status: the final X chromosome calls from the algorithm**
+5. **XCI_status:** the final X chromosome calls from the algorithm (`X0`, `X1`, or `unknown`)
 
 Note that X₀ or X₁ are direction agnostic. For genotyping, refer to the full manual for determining the exact REF/ALT SNP assignment for each X haplotype.
 

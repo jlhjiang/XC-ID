@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def make_haplotype_matrices(assignment_vector: np.ndarray,
+def make_haplotype_matrices(assignment_vector: np.ndarray, 
                          counts_ref: np.ndarray,
                          counts_alt: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     '''Given an assignment vector (0/1 for each SNP), return haplotype-specific count matrices.'''
@@ -27,15 +27,17 @@ def make_escape_df(results: pd.DataFrame,
                   ) -> pd.DataFrame:
     '''Make a dataframe of escape candidates based on results and haplotype count matrices.'''
 
-    conf_cells = results['XCI_status'] != 'unknown'
-    hap0_cells = (score > 0) & conf_cells
-    hap1_cells = (score < 0) & conf_cells
+    hap0_cells = score > 0 & (results['XCI_status'] != 'unknown')
+    hap1_cells = score < 0 & (results['XCI_status'] != 'unknown')
 
-    # active = the haplotype called "on" for that cell; inactive = the other one
+    conf_cells = results['XCI_status'] != 'unknown'
+
     active_counts = hap0_counts.copy()
+    active_counts[hap0_cells, :] = hap0_counts[hap0_cells, :]
     active_counts[hap1_cells, :] = hap1_counts[hap1_cells, :]
 
-    inactive_counts = hap1_counts.copy()
+    inactive_counts = hap0_counts.copy()
+    inactive_counts[hap0_cells, :] = hap1_counts[hap0_cells, :]
     inactive_counts[hap1_cells, :] = hap0_counts[hap1_cells, :]
 
     inactive_counts = inactive_counts[conf_cells, :]

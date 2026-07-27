@@ -20,17 +20,14 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class XCID:
-    '''Class to perform X chromosome inactivation identification (XC-ID) analysis.
+    '''Class to perform X chromosome inactivation identification (XC-ID) analysis.'''
 
-    Field names match the CLI flags (e.g. `chrom` <-> `--chrom`, `seed` <-> `--seed`)
-    so options translate directly between the Python API and the command line.'''
-
-    vcf: list[str] # list of VCF file paths, can provide multiple
-    bam: list[str] # list of BAM file paths, can provide multiple
-    cells: Optional[str] = None # path to filtered cells file (one cell barcode per line)
-    chrom: str = "chrX" # chromosome to analyze, watch out for naming conventions ("chrX" vs "X")
+    vcf_files: list[str] # list of VCF file paths, can provide multiple
+    bam_files: list[str] # list of BAM file paths, can provide multiple
+    cells_file: Optional[str] = None # path to filtered cells file (one cell barcode per line)
+    chromosome: str = "X" # chromosome to analyze, watch out for naming conventions ("e.g. chrX" vs "X")
     blacklist: set[int] = field(default_factory=set) # set of positions to blacklist (e.g. PARs)
-    seed: Optional[int] = None
+    rand_seed: Optional[int] = None
 
     min_per_snp: int = 5 # minimum UMIs per SNP to consider for phasing
     min_per_cell: int = 2 # minimum SNP counts per cell to consider for phasing
@@ -48,14 +45,14 @@ class XCID:
     # internal state
     rng: np.random.Generator = field(init=False)
 
-    filtered_cells: Optional[np.ndarray] = field(init=False, default=None) # array of allowed cell barcodes loaded from `cells`
+    filtered_cells: Optional[np.ndarray] = field(init=False, default=None) # array of filtered cell barcodes
     snp_info: Optional[dict] = field(init=False, default=None) # SNP information dictionary
     umis: Optional[dict] = field(init=False, default=None) # UMI information dictionary
     cell2allele: Optional[dict] = field(init=False, default=None) # cell to allele mapping
     pos4phasing: Optional[list] = field(init=False, default=None) # valid positions to phase
     counts_ref: Optional[np.ndarray] = field(init=False, default=None) # reference counts (n_cells x n_snps)
     counts_alt: Optional[np.ndarray] = field(init=False, default=None) # alternate counts (n_cells x n_snps)
-    cell_ids: Optional[np.ndarray] = field(init=False, default=None) # array of cell barcodes surviving filtering
+    cells: Optional[np.ndarray] = field(init=False, default=None) # array of cell barcodes
 
     sa_score: Optional[np.ndarray] = field(init=False, default=None)
     best_cost: Optional[float] = field(init=False, default=None)
@@ -69,31 +66,30 @@ class XCID:
     escape_df: Optional[pd.DataFrame] = field(init=False, default=None)
 
     def __post_init__(self):
-        self.rng = np.random.default_rng(self.seed) if self.seed is not None else np.random.default_rng()
+        self.rng = np.random.default_rng(self.rand_seed) if self.rand_seed is not None else np.random.default_rng()
 
     # ---------- compute / chainable ----------
     def load_data(self) -> "XCID":
         '''Load and preprocess data from VCF and BAM files.'''
-        if self.cells is not None:
-            self.filtered_cells = np.loadtxt(self.cells, dtype=str)
+        if self.cells_file is not None:
+            self.filtered_cells = np.loadtxt(self.cells_file, dtype=str)
 
-        self.snp_info = load_vcf(self.vcf,
-                                 chrom=self.chrom,
+        self.snp_info = load_vcf(self.vcf_files, 
+                                 chromosome=self.chromosome, 
                                  blacklist=self.blacklist,
                                  )
         self.umis, self.cell2allele = read_bam(
-            bams=self.bam,
+            bams=self.bam_files,
             snp_info=self.snp_info,
             filtered_cells=self.filtered_cells,
-            chrom=self.chrom,
-            n_jobs=self.n_jobs,
+            chromosome=self.chromosome,
         )
-        self.pos4phasing = get_pos_for_phasing(umis=self.umis,
-                                               min_per_snp=self.min_per_snp,
+        self.pos4phasing = get_pos_for_phasing(umis=self.umis, 
+                                               min_per_snp=self.min_per_snp, 
                                                min_maf=self.min_maf,
                                                blacklist=self.blacklist,
                                                )
-        self.cell_ids, self.counts_ref, self.counts_alt = build_counts_matrix(
+        self.cells, self.counts_ref, self.counts_alt = build_counts_matrix(
             cell2allele=self.cell2allele,
             pos4phasing=self.pos4phasing,
             min_per_cell=self.min_per_cell,
@@ -144,18 +140,18 @@ class XCID:
     def results_table(self) -> pd.DataFrame:
         '''Return a table of results with columns: cell, score, p_value, p_adj, XCI_status.'''
         self._require(self.sa_score is not None, "Call assign_haplotypes() first.")
-        results = make_results(cell_ids=self.cell_ids,
+        results = make_results(cells=self.cells,
                                     score=self.sa_score,
                                     score_array=self.score_array
                                     )
-
+        
         if results['XCI_status'].isin(['X0', 'X1']).sum()/len(results) < 0.2:
             log.warning("Less than 20%% of cells were confidently assigned."
                         "This may indicate low data quality: **consider increasing n_boot to 500 or 1000**")
-
+            
         self.results = results
         return self.results
-
+    
 # ---------- experimental haplotype matrices and escape ----------
 
     def haplotype_matrices(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -175,7 +171,7 @@ class XCID:
             self.counts_ref,
             self.counts_alt,
             )
-
+        
         conf_idx = self.results['XCI_status'] != 'unknown'
         conf_cells = self.results.loc[conf_idx, 'cell_id'].values
         filt_hap0_counts = filt_hap0_counts[conf_idx, :]
