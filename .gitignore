@@ -6,6 +6,7 @@
 **/encode_mouse_cross/
 **/notebooks/
 **/cli_test/
+**/src_old/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

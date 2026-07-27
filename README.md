@@ -113,5 +113,5 @@ Note that X₀ or X₁ are direction agnostic. For genotyping, refer to the full
 
 ## Full manual
 
-Reference to the [manual] for more detailed explanation, including how to extract the exact REF/ALT genotypes, and get putative escape genes/proportions.
+Reference to the [manual](/manual/preprocessing.md) for more detailed explanation, including how to extract the exact REF/ALT genotypes, and get putative escape genes/proportions.
 
