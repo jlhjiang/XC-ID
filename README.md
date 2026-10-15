@@ -44,7 +44,10 @@ XC-ID requires:
 - **BAM files** aligned with STAR using WASP tagging (`--waspOutputMode SAMtag`)  
 - **VCF files** containing heterozygous SNP positions for phasing
 
-Preprocessing pipelines can vary depending on your data type. A basic setup only requires a single STAR+WASP alignment step.  
+Preprocessing pipelines can vary depending on your data type. A basic setup only requires a single STAR+WASP alignment step.
+
+For human data, simply use the reference population SNPs from gnomAD found [data/gnomAD_for_XCID.vcf] (data/gnomAD_for_XCID.vcf). For lab mouse strains, use the known SNPs from Mouse Genome Informatics found [data/gnomAD_for_XCID.vcf] (data/mgi_for_XCID.vcf).
+
 Detailed preprocessing instructions are available in the [documentation](/manual/preprocessing.md).
 
 ### 2. Running XC-ID
@@ -56,7 +59,7 @@ You can run XC-ID via the **Python API** or **CLI**. The most basic use example 
 from xcid import XCID
 
 xc = XCID(
-    vcf=["/path/to/variants.vcf"],
+    vcf=["/path/to/variants.vcf"], # recommend using the reference SNPs we provide
     bam=["/path/to/aligned.bam"],
 )
 results = xc.run_all()
@@ -86,12 +89,12 @@ You can also finetune the haplotype counts matrices by providing a filtered cell
 | BAM file(s) | `bam` | `--bam` | One or more STAR+WASP aligned BAM files |
 | Chromosome | `chrom` | `--chrom` | Chromosome name as it appears in the BAM/VCF (default: `chrX`) |
 | Filtered cells | `cells` | `--cells` | Allowed cell barcodes for constructing the counts matrices |
-| Number of bootstraps | `n_boot` | `--n-boot` | Increase to 500–1000 for low-quality datasets |
+| Number of bootstraps | `n_boot` | `--n-boot` | Default = 1000 |
 | Number of parallel jobs | `n_jobs` | `--n-jobs` | Default = -1 (use all available cores); also parallelizes reading multiple BAM files |
 | Random seed | `seed` | `--seed` | Ensures reproducibility |
 | Min UMIs per SNP | `min_per_snp` | `--min-per-snp` | Minimum UMIs covering a SNP to keep it for phasing (default: 5) |
 | Min counts per cell | `min_per_cell` | `--min-per-cell` | Minimum SNP counts in a cell to keep it (default: 2) |
-| Min minor allele frequency | `min_maf` | `--min-maf` | Minimum minor allele frequency to keep a SNP (default: 0.1) |
+| Min minor allele frequency | `min_maf` | `--min-maf` | Minimum minor allele frequency to keep a SNP (default: 0.05) |
 
 See full parameter list with:
 ```bash

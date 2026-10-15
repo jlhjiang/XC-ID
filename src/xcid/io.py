@@ -1,3 +1,6 @@
+import json
+import os
+import platform
 import sys
 from pathlib import Path
 
@@ -268,3 +271,39 @@ def write_haplotype_matrices(hap0_counts: pd.DataFrame, hap1_counts: pd.DataFram
     out_dir.mkdir(parents=True, exist_ok=True)
     hap0_counts.to_csv(out_dir / "hap0_counts.tsv", sep="\t")
     hap1_counts.to_csv(out_dir / "hap1_counts.tsv", sep="\t")
+
+
+def get_system_specs() -> dict:
+    '''Collect basic machine specs (hostname, platform, CPU count, total
+    memory) using only the standard library -- no new dependency. Memory is
+    read from /proc/meminfo and left as None on non-Linux systems or if that
+    file isn't readable.'''
+    specs = {
+        "hostname": platform.node(),
+        "platform": platform.platform(),
+        "python_version": platform.python_version(),
+        "cpu_count": os.cpu_count(),
+        "total_memory_gb": None,
+    }
+    try:
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                if line.startswith("MemTotal:"):
+                    kb = int(line.split()[1])
+                    specs["total_memory_gb"] = round(kb / 1024 / 1024, 2)
+                    break
+    except (FileNotFoundError, OSError):
+        pass
+    return specs
+
+
+def write_run_summary(summary: dict, path) -> None:
+    '''Write a run summary (parameters, system specs, runtime, data/output
+    counts -- see XCID.summary_stats()) to a JSON file, creating parent
+    directories as needed. `default=str` is a pragmatic fallback for any
+    non-JSON-native values (numpy scalars, sets, Path objects) that end up
+    in the parameters/specs dicts rather than requiring every caller to
+    convert them individually.'''
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(summary, fh, indent=2, default=str)

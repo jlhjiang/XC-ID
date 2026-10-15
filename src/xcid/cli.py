@@ -1,9 +1,10 @@
 # xcid/cli.py
 from __future__ import annotations
 import argparse
+from pathlib import Path
 
 from .xcid import XCID
-from .io import load_blacklist, write_results_table, write_escape_table, write_haplotype_matrices
+from .io import load_blacklist, write_results_table, write_escape_table, write_haplotype_matrices, write_run_summary
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -23,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     filt = p.add_argument_group("Filtering")
     filt.add_argument("--min-per-snp", type=int, default=5, help="Min UMIs per SNP to keep (default: 5).")
     filt.add_argument("--min-per-cell", type=int, default=2, help="Min SNP counts per cell to keep (default: 2).")
-    filt.add_argument("--min-maf", type=float, default=0.1, help="Min minor allele frequency to keep a SNP (default: 0.1).")
+    filt.add_argument("--min-maf", type=float, default=0.05, help="Min minor allele frequency to keep a SNP (default: 0.05).")
 
     sa = p.add_argument_group(
         "Simulated annealing (do not change these unless you know what you are doing)"
@@ -31,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     sa.add_argument("--temp", type=float, default=None, help="Initial temperature (default: n_pos * 1000).")
     sa.add_argument("--alpha", type=float, default=None, help="Cooling rate (default auto: 0.995/0.999).")
     sa.add_argument("--max-iter", type=int, default=None, help="Max iterations (default: max(15000, 20*n_pos)).")
-    sa.add_argument("--n-init", type=int, default=1, help="Number of random initializations (default: 1).")
+    sa.add_argument("--n-init", type=int, default=10, help="Number of random initializations (default: 1).")
 
     boot = p.add_argument_group("Bootstrap")
     boot.add_argument("--n-boot", type=int, default=100, help="Number of bootstraps (default: 100).")
@@ -78,6 +79,12 @@ def main(argv=None) -> int:
 
     # Save results
     write_results_table(results, args.out_results)
+
+    # Run summary (parameters, system specs, runtime, data/output counts) --
+    # saved alongside the results table, not behind a flag, since it's cheap
+    # to produce and useful for every run.
+    summary_path = Path(args.out_results).parent / "run_summary.json"
+    write_run_summary(x.summary_stats(), summary_path)
 
     # Optional: save escape table
     if args.out_escape:

@@ -27,7 +27,7 @@ def bootstrap_once(k: int,
     best_assignment_sample, _, _ = simulated_annealing(
         counts_ref=count_ref_sample, counts_alt=count_alt_sample,
         pos4phasing=pos4phasing, print_interval=False,
-        rng=rng,
+        rng=rng, 
         **sa_kwargs)  # use the filtered counts
 
     # but get the values for all cells
@@ -44,7 +44,7 @@ def bootstrap_once(k: int,
 def bootstrap_variants(pos4phasing: list,
                         counts_ref: np.ndarray, counts_alt: np.ndarray,
                         obs_assignment: np.ndarray,
-                        n_boot=100,
+                        n_boot=1000,
                         min_per_cell=2,
                         n_jobs=-1,  # total - 1 number of jobs
                         verbose=2,

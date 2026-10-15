@@ -1,0 +1,48 @@
+{
+  "parameters": {
+    "vcf": [
+      "variants.vcf"
+    ],
+    "bam": [
+      "WASP_X.bam"
+    ],
+    "cells": "barcodes.txt",
+    "chrom": "X",
+    "blacklist": [],
+    "seed": 206,
+    "min_per_snp": 5,
+    "min_per_cell": 2,
+    "min_maf": 0.05,
+    "n_boot": 100,
+    "n_jobs": -1,
+    "verbose": 2,
+    "temp": null,
+    "alpha": null,
+    "max_iter": null,
+    "n_init": 10,
+    "n_init_bootstrap": 1
+  },
+  "runtime": {
+    "elapsed_seconds": 11.7
+  },
+  "system": {
+    "hostname": "inkwell04.ccbr.utoronto.ca",
+    "platform": "Linux-5.14.0-611.16.1.el9_7.x86_64-x86_64-with-glibc2.34",
+    "python_version": "3.12.12",
+    "cpu_count": 32,
+    "total_memory_gb": 187.48
+  },
+  "data_summary": {
+    "n_snps_with_coverage": 267,
+    "n_informative_snps": 267,
+    "n_cells_with_informative_reads": 1968,
+    "n_informative_cells": 1891,
+    "n_informative_reads": 15600
+  },
+  "output_summary": {
+    "n_X0": 536,
+    "n_X1": 1152,
+    "n_unknown": 203,
+    "n_total_cells": 1891
+  }
+}

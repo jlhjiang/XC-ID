@@ -1,13 +1,14 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Optional, Tuple
 import logging
+import time
 if __package__ is None or __package__ == "":
     import sys, os
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     __package__ = "xcid"
 
-from .io import load_vcf, read_bam, make_results
+from .io import load_vcf, read_bam, make_results, get_system_specs
 from .preprocess import get_pos_for_phasing, build_counts_matrix
 from .simulated_annealing import simulated_annealing
 from .bootstrap import bootstrap_variants
@@ -34,8 +35,8 @@ class XCID:
 
     min_per_snp: int = 5 # minimum UMIs per SNP to consider for phasing
     min_per_cell: int = 2 # minimum SNP counts per cell to consider for phasing
-    min_maf: float = 0.1 # minimum minor allele frequency to consider SNPs
-    n_boot: int = 100
+    min_maf: float = 0.05 # minimum minor allele frequency to consider SNPs
+    n_boot: int = 1000
     n_jobs: int = -1
     verbose: int = 2
 
@@ -43,10 +44,12 @@ class XCID:
     temp: Optional[int] = None # initial temperature
     alpha: Optional[float] = None # cooling rate
     max_iter: Optional[int] = None # maximum iterations
-    n_init: int = 1 # number of initializations
+    n_init: int = 10 # number of initializations
+    n_init_bootstrap: int = 1 # number of initializations for bootstrap
 
     # internal state
     rng: np.random.Generator = field(init=False)
+    _start_time: float = field(init=False, default=0.0) # wall-clock start, set in __post_init__; used by summary_stats()
 
     filtered_cells: Optional[np.ndarray] = field(init=False, default=None) # array of allowed cell barcodes loaded from `cells`
     snp_info: Optional[dict] = field(init=False, default=None) # SNP information dictionary
@@ -70,6 +73,7 @@ class XCID:
 
     def __post_init__(self):
         self.rng = np.random.default_rng(self.seed) if self.seed is not None else np.random.default_rng()
+        self._start_time = time.time()
 
     # ---------- compute / chainable ----------
     def load_data(self) -> "XCID":
@@ -135,7 +139,7 @@ class XCID:
             temp=self.temp,
             alpha=self.alpha,
             max_iter=self.max_iter,
-            n_init=self.n_init,
+            n_init=self.n_init_bootstrap,
             rng=self.rng,
         )
         return self
@@ -155,6 +159,58 @@ class XCID:
 
         self.results = results
         return self.results
+
+    def summary_stats(self) -> dict:
+        '''Build a run-summary dict: the parameters this run used, basic
+        system specs, wall-clock runtime so far, and counts describing the
+        data and the final results (how many SNPs/cells/reads were
+        informative, and how the final X0/X1/unknown calls broke down).
+
+        Safe to call at any point in the pipeline -- sections that depend on
+        steps not yet run (e.g. output_summary before results_table()) are
+        simply left as empty dicts rather than raising.'''
+        parameters = {}
+        for f in fields(self):
+            if not f.init:
+                continue
+            value = getattr(self, f.name)
+            if isinstance(value, set):
+                value = sorted(value)
+            parameters[f.name] = value
+
+        summary = {
+            "parameters": parameters,
+            "runtime": {
+                "elapsed_seconds": round(time.time() - self._start_time, 2),
+            },
+            "system": get_system_specs(),
+            "data_summary": {},
+            "output_summary": {},
+        }
+
+        if self.umis is not None:
+            summary["data_summary"]["n_snps_with_coverage"] = len(self.umis)
+        if self.pos4phasing is not None:
+            summary["data_summary"]["n_informative_snps"] = len(self.pos4phasing)
+        if self.cell2allele is not None:
+            summary["data_summary"]["n_cells_with_informative_reads"] = len(self.cell2allele)
+        if self.cell_ids is not None:
+            summary["data_summary"]["n_informative_cells"] = len(self.cell_ids)
+        if self.counts_ref is not None and self.counts_alt is not None:
+            summary["data_summary"]["n_informative_reads"] = int(
+                self.counts_ref.sum() + self.counts_alt.sum()
+            )
+
+        if self.results is not None:
+            status_counts = self.results["XCI_status"].value_counts()
+            summary["output_summary"] = {
+                "n_X0": int(status_counts.get("X0", 0)),
+                "n_X1": int(status_counts.get("X1", 0)),
+                "n_unknown": int(status_counts.get("unknown", 0)),
+                "n_total_cells": int(len(self.results)),
+            }
+
+        return summary
 
 # ---------- experimental haplotype matrices and escape ----------
 
