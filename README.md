@@ -46,7 +46,7 @@ XC-ID requires:
 
 Preprocessing pipelines can vary depending on your data type. A basic setup only requires a single STAR+WASP alignment step.
 
-For human data, simply use the reference population SNPs from gnomAD found [data/gnomAD_for_XCID.vcf] (data/gnomAD_for_XCID.vcf). For lab mouse strains, use the known SNPs from Mouse Genome Informatics found [data/gnomAD_for_XCID.vcf] (data/mgi_for_XCID.vcf).
+For human data, simply use the reference population SNPs from gnomAD found here [data/gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf). For lab mouse strains, use the known SNPs from Mouse Genome Informatics found here [data/mgi_for_XCID.vcf.gz](/data/mgi_for_XCID.vcf.gz) (gunzip before use!).
 
 Detailed preprocessing instructions are available in the [documentation](/manual/preprocessing.md).
 
