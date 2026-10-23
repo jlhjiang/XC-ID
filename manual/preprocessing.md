@@ -15,8 +15,8 @@ Start here to figure out which steps below actually apply to you.
 
 | Your situation | What to do |
 |---|---|
-| I don't have a VCF of SNP positions yet, and I'm working with **human** data | Skip variant calling — use the provided [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf) (common X chromosome variants, population AF ≥ 0.01), then go straight to **Step 3**. |
-| I don't have a VCF, and I'm working with **mouse cross** (or other multi-strain) data | Do **Step 0** (optional) → **Step 1** (alignment) → **Step 2** (variant calling) → **Step 3**. OR Skip variant calling — derive heterozygous positions by comparing genotypes between the two parental strains through MGP, then go to **Step 3**. |
+| I'm working with **human** data | Skip variant calling — use the provided [gnomad_for_XCID.vcf](/data/gnomad_for_XCID.vcf) (common X chromosome variants, population AF ≥ 0.01), then go straight to **Step 3**. |
+| I'm working with **mouse cross** data | Skip variant calling — use the provided [mgi_for_XCID.vcf.gz](/data/mgi_for_XCID.vcf.gz) (lab mice strains, gunzip first!), then go straight to **Step 3**.  |
 | I don't have a VCF and want to call variants de novo from my own reads | Do **Step 0** (optional) → **Step 1** (alignment) → **Step 2** (variant calling) → **Step 3**. |
 | I already have a VCF of SNP positions (from any source) | Go straight to **Step 3**. |
 

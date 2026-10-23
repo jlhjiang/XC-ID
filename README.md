@@ -89,7 +89,8 @@ You can also finetune the haplotype counts matrices by providing a filtered cell
 | BAM file(s) | `bam` | `--bam` | One or more STAR+WASP aligned BAM files |
 | Chromosome | `chrom` | `--chrom` | Chromosome name as it appears in the BAM/VCF (default: `chrX`) |
 | Filtered cells | `cells` | `--cells` | Allowed cell barcodes for constructing the counts matrices |
-| Number of bootstraps | `n_boot` | `--n-boot` | Default = 1000 |
+| Number of random initializations | `n_init` | `--n-init` | Default = 10 (main phasing; the lowest-energy configuration is kept) |
+| Number of bootstraps | `n_boot` | `--n-boot` | Default = 1000 (each bootstrap reruns the phasing from a single random initialization) |
 | Number of parallel jobs | `n_jobs` | `--n-jobs` | Default = -1 (use all available cores); also parallelizes reading multiple BAM files |
 | Random seed | `seed` | `--seed` | Ensures reproducibility |
 | Min UMIs per SNP | `min_per_snp` | `--min-per-snp` | Minimum UMIs covering a SNP to keep it for phasing (default: 5) |
@@ -116,5 +117,5 @@ Note that X₀ or X₁ are direction agnostic. For genotyping, refer to the full
 
 ## Full manual
 
-Reference to the [manual](/manual/preprocessing.md) for more detailed explanation, including how to extract the exact REF/ALT genotypes, and get putative escape genes/proportions.
+Reference to the [manual](/manual/preprocessing.md) for more detailed explanation.
 

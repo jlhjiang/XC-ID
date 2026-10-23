@@ -32,10 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     sa.add_argument("--temp", type=float, default=None, help="Initial temperature (default: n_pos * 1000).")
     sa.add_argument("--alpha", type=float, default=None, help="Cooling rate (default auto: 0.995/0.999).")
     sa.add_argument("--max-iter", type=int, default=None, help="Max iterations (default: max(15000, 20*n_pos)).")
-    sa.add_argument("--n-init", type=int, default=10, help="Number of random initializations (default: 1).")
+    sa.add_argument("--n-init", type=int, default=10, help="Number of random initializations for the main phasing (default: 10).")
 
     boot = p.add_argument_group("Bootstrap")
-    boot.add_argument("--n-boot", type=int, default=100, help="Number of bootstraps (default: 100).")
+    boot.add_argument("--n-boot", type=int, default=1000, help="Number of bootstraps, each rerunning the phasing from a single random initialization (default: 1000).")
     boot.add_argument("--n-jobs", type=int, default=-1, help="Parallel jobs for BAM reading and bootstrap (default: -1, all cores).")
     boot.add_argument("--verbose", type=int, default=2, help="joblib verbosity (default: 2).")
 
