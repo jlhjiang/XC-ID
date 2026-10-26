@@ -12,8 +12,8 @@
     "seed": 206,
     "min_per_snp": 5,
     "min_per_cell": 2,
-    "min_maf": 0.05,
-    "n_boot": 100,
+    "min_maf": 0.1,
+    "n_boot": 1000,
     "n_jobs": -1,
     "verbose": 2,
     "temp": null,
@@ -23,7 +23,7 @@
     "n_init_bootstrap": 1
   },
   "runtime": {
-    "elapsed_seconds": 11.7
+    "elapsed_seconds": 48.41
   },
   "system": {
     "hostname": "inkwell04.ccbr.utoronto.ca",
@@ -34,15 +34,15 @@
   },
   "data_summary": {
     "n_snps_with_coverage": 267,
-    "n_informative_snps": 267,
+    "n_informative_snps": 265,
     "n_cells_with_informative_reads": 1968,
-    "n_informative_cells": 1891,
-    "n_informative_reads": 15600
+    "n_informative_cells": 1890,
+    "n_informative_reads": 15488
   },
   "output_summary": {
-    "n_X0": 536,
-    "n_X1": 1152,
-    "n_unknown": 203,
-    "n_total_cells": 1891
+    "n_X0": 1255,
+    "n_X1": 596,
+    "n_unknown": 39,
+    "n_total_cells": 1890
   }
 }

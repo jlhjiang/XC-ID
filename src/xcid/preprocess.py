@@ -2,7 +2,7 @@ import sys
 import numpy as np
 
 def get_pos_for_phasing(umis=None,
-                        min_maf=0.05, #minimum minor allele frequency to consider for phasing
+                        min_maf=0.1, #minimum minor allele frequency to consider for phasing
                         min_per_snp=5, #minimum UMIs per position to consider for phasing
                         blacklist=frozenset() #optional addtional blacklisting
                         ):

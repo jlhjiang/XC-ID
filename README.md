@@ -95,7 +95,7 @@ You can also finetune the haplotype counts matrices by providing a filtered cell
 | Random seed | `seed` | `--seed` | Ensures reproducibility |
 | Min UMIs per SNP | `min_per_snp` | `--min-per-snp` | Minimum UMIs covering a SNP to keep it for phasing (default: 5) |
 | Min counts per cell | `min_per_cell` | `--min-per-cell` | Minimum SNP counts in a cell to keep it (default: 2) |
-| Min minor allele frequency | `min_maf` | `--min-maf` | Minimum minor allele frequency to keep a SNP (default: 0.05) |
+| Min minor allele frequency | `min_maf` | `--min-maf` | Minimum minor allele frequency to keep a SNP (default: 0.1) |
 
 See full parameter list with:
 ```bash

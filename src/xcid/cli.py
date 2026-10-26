@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     filt = p.add_argument_group("Filtering")
     filt.add_argument("--min-per-snp", type=int, default=5, help="Min UMIs per SNP to keep (default: 5).")
     filt.add_argument("--min-per-cell", type=int, default=2, help="Min SNP counts per cell to keep (default: 2).")
-    filt.add_argument("--min-maf", type=float, default=0.05, help="Min minor allele frequency to keep a SNP (default: 0.05).")
+    filt.add_argument("--min-maf", type=float, default=0.1, help="Min minor allele frequency to keep a SNP (default: 0.1).")
 
     sa = p.add_argument_group(
         "Simulated annealing (do not change these unless you know what you are doing)"

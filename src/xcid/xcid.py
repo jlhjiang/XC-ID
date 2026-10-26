@@ -35,7 +35,7 @@ class XCID:
 
     min_per_snp: int = 5 # minimum UMIs per SNP to consider for phasing
     min_per_cell: int = 2 # minimum SNP counts per cell to consider for phasing
-    min_maf: float = 0.05 # minimum minor allele frequency to consider SNPs
+    min_maf: float = 0.1 # minimum minor allele frequency to consider SNPs
     n_boot: int = 1000
     n_jobs: int = -1
     verbose: int = 2
