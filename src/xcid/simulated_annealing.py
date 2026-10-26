@@ -63,7 +63,7 @@ def simulated_annealing(counts_ref, counts_alt,
         idx = rng.integers(0, n_pos, size=n_init)
         flip = 1 - 2*best_assignment[np.arange(n_init), idx] # directly + or - the cost difference
 
-        delta_vec = 2 * diff[:, idx] * flip
+        delta_vec = -2 * diff[:, idx] * flip
 
         cur_abs = np.abs(best_cell_cost)
         new_abs = np.abs(best_cell_cost + delta_vec)
