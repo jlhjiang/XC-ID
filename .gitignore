@@ -8,6 +8,7 @@ notebooks/
 cli_test/
 src_old/
 .nextflow/
+mgi_for_XCID.vcf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

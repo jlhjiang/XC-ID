@@ -31,7 +31,7 @@ def get_pos_for_phasing(umis=None,
         if count_ref < 1 or count_alt < 1:
             monoallelic +=1
             continue
-        elif count_ref+count_ref < min_per_snp: #(count_ref < min_per_snp) or (count_alt < min_per_snp):
+        elif count_ref+count_alt < min_per_snp: #(count_ref < min_per_snp) or (count_alt < min_per_snp):
             low_umis +=1
             continue
         elif (np.minimum(count_ref, count_alt)/(count_ref+count_alt)) < min_maf:
