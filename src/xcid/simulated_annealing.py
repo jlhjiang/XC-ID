@@ -5,7 +5,7 @@ from .scoring import get_score
 def cell_cost_function_multi(assignment_matrix, counts_ref, counts_alt):
     '''cell wise cost function (maximizing haplotype coverage) for vectorized multiple initializations'''
     # no need for mask, just dot products of counts and assignment_matrix
-    # assignment_matrix is n_pos x n_init
+    # assignment_matrix is n_init x n_pos
 
     hap0_cov = np.dot(counts_ref, (1 - assignment_matrix).T) + np.dot(counts_alt, assignment_matrix.T) # n_cells x n_init
     # sum of hap on ref counts and hap on alt counts
@@ -30,7 +30,7 @@ def simulated_annealing(counts_ref, counts_alt,
 
     if max_iter is None:
         max_iter = np.maximum(15000, n_pos * 20).astype(int)
-        # ensure max_iter is at least 15000 or 1000 times the number of positions
+        # ensure max_iter is at least 15000 or 20 times the number of positions
     if temp is None:
         temp = n_pos * 1000
     if alpha is None:
@@ -42,7 +42,7 @@ def simulated_annealing(counts_ref, counts_alt,
         print(f"Running simulated annealing with {n_init} initializations, {max_iter} max iterations.")
         print(f"Initial temperature: {temp}, cooling rate: {alpha}.")
 
-    print_schedule = max_iter // 4
+    print_schedule = max(max_iter // 4, 1)
 
     assignment_matrix = rng.choice([0, 1], size=(n_init, n_pos))
 
@@ -101,6 +101,6 @@ def simulated_annealing(counts_ref, counts_alt,
     final_score = get_score(counts_ref, counts_alt, final_best_assignment)
 
     if print_interval:
-        print(f'Best cost found after {iteration} iterations: {best_cost[best_run]}. Initial cost: {init_cost[best_run]}.')
+        print(f'Best cost found after {max_iter} iterations: {best_cost[best_run]}. Initial cost: {init_cost[best_run]}.')
 
     return final_best_assignment, final_best_cost, final_score

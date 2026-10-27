@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pysam
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, effective_n_jobs
 from scipy.stats import binomtest
 from statsmodels.stats.multitest import multipletests
 
@@ -46,33 +46,53 @@ def load_vcf(vcf, blacklist=frozenset(), chrom='chrX'):
     return snp_info
 
 
-def _read_bam_single(bam, snp_info, filtered_cells, chrom):
-    '''Read a single BAM file and extract UMI and allele information for SNP positions.
-    Returns (umis, cell2allele, bad_cells) for this file only.'''
+# size of the chromosome chunks read in parallel by read_bam
+BAM_CHUNK_SIZE = 5_000_000
+# SNP lookups past the chunk end within this distance (e.g. spliced reads) use a set;
+# anything further falls back to a binary search over all positions
+SNP_WINDOW = 1_000_000
+
+
+def _read_bam_single(bam, snp_pos, filtered_cells, chrom, start, end, threads=1):
+    '''Read one region of a single BAM file and extract UMI and allele information for SNP positions.
+    snp_pos is a sorted array of 1-based SNP positions. Only reads starting in [start, end) are
+    kept, so adjacent chunks never count a read twice.
+    Returns (umis, cell2allele, bad_cells) for this region only.'''
 
     bad_cells = 0
     umis        = {}
     cell2allele = {}
 
-    with pysam.AlignmentFile(bam, "rb") as samfile:
+    # reads starting at 0-based `start` only cover 1-based positions > start
+    lo, hi = np.searchsorted(snp_pos, [start + 1, end + SNP_WINDOW + 1])
+    local_snps = set(snp_pos[lo:hi].tolist())
+    window_end = end + SNP_WINDOW
+
+    def is_snp(posx):
+        if posx <= window_end:
+            return posx in local_snps
+        i = np.searchsorted(snp_pos, posx)
+        return i < len(snp_pos) and snp_pos[i] == posx
+
+    with pysam.AlignmentFile(bam, "rb", threads=threads) as samfile:
         # fetch reads on chromosome (or region)
-        for read in samfile.fetch(chrom):
-            # Check for the presence of vG and vW tags.
-            try:
-                vG = read.get_tag("vG")
-                vW = read.get_tag("vW")
-            except KeyError:
+        for read in samfile.fetch(chrom, start, end):
+            # reads spanning the chunk start belong to the previous chunk
+            if read.reference_start < start:
                 continue
 
+            # most reads carry no WASP tags: reject them with has_tag rather than
+            # a raised KeyError, which is much slower on this hot path
+            if not read.has_tag("vW"):
+                continue
             # vW is 1 if passed WASP filtering
-            if vW != 1:
+            if read.get_tag("vW") != 1:
                 continue
-
-            # get vA (allele information): 0 for ref, 1 for alt
-            try:
-                vA = read.get_tag("vA")
-            except KeyError:
+            if not (read.has_tag("vG") and read.has_tag("vA")):
                 continue
+            vG = read.get_tag("vG")
+            # get vA (allele information): 1 for ref, 2 for alt
+            vA = read.get_tag("vA")
             # fall back
             if not vG or not vA:
                 continue
@@ -103,8 +123,14 @@ def _read_bam_single(bam, snp_info, filtered_cells, chrom):
                     continue
 
             if not umi_id:
-                # Fallback: construct a UMI from available read data
-                umi_id = f"{cell_id}_{read.reference_start}_{read.flag}_{read.cigarstring}_{read.template_length}"
+                # Fallback: construct a UMI from the fragment's position. Both mates of a proper
+                # pair get the same key (leftmost start + fragment length), so a fragment is counted
+                # once; the flag is left out so duplicate-marked (0x400) copies collapse too.
+                if read.is_proper_pair:
+                    frag_start = min(read.reference_start, read.next_reference_start)
+                    umi_id = f"{cell_id}_{frag_start}_{abs(read.template_length)}"
+                else:
+                    umi_id = f"{cell_id}_{read.reference_start}_{read.is_reverse}_{read.cigarstring}"
 
             # For each variant position (and corresponding allele) stored in vG/vA:
             for g, a in zip(vGpos, vAvals):
@@ -115,7 +141,7 @@ def _read_bam_single(bam, snp_info, filtered_cells, chrom):
                 # vG positions are 0-based, add 1 to convert to 1-based
                 posx = g + 1
 
-                if posx not in snp_info:
+                if not is_snp(posx):
                     continue
 
                 try:
@@ -159,6 +185,17 @@ def _merge_cell2allele(cell2allele, other):
             dest.setdefault(pos, {}).update(umimap)
 
 
+def _bam_chunks(bams, chrom, chunk_size=BAM_CHUNK_SIZE):
+    '''Split `chrom` in each BAM into (bam, start, end) regions, in file then genomic order.'''
+    chunks = []
+    for bam in bams:
+        with pysam.AlignmentFile(bam, "rb") as samfile:
+            length = samfile.get_reference_length(chrom)
+        for start in range(0, length, chunk_size):
+            chunks.append((bam, start, min(start + chunk_size, length)))
+    return chunks
+
+
 def read_bam(bams = [],
              snp_info = {},
              filtered_cells = None,
@@ -166,21 +203,33 @@ def read_bam(bams = [],
              n_jobs = 1):
     '''Read BAM files and extract UMI and allele information for SNP positions.
     Returns a dictionary of UMIs and a mapping of cells to alleles.
-    When multiple BAM files are provided, they are read in parallel (see n_jobs).'''
+    The chromosome in each BAM is split into chunks that are read in parallel. n_jobs is the
+    total CPU budget: it is shared between parallel workers and per-worker BAM decompression
+    threads, so the run never uses more than n_jobs cores.'''
 
     if filtered_cells is not None:
+        filtered_cells = set(filtered_cells) # O(1) membership checks per read
         print(f"Number of filtered cells provided: {len(filtered_cells)}")
     else:
         filtered_cells = None
         print("No filtered cells file provided, all cells will be processed.")
 
-    if len(bams) > 1:
-        partials = Parallel(n_jobs=n_jobs, backend='loky')(
-            delayed(_read_bam_single)(bam, snp_info, filtered_cells, chrom)
-            for bam in bams
-        )
-    else:
-        partials = [_read_bam_single(bam, snp_info, filtered_cells, chrom) for bam in bams]
+    chunks = _bam_chunks(bams, chrom)
+    n_cpus = effective_n_jobs(n_jobs)
+    n_workers = min(n_cpus, len(chunks))
+    threads = max(1, n_cpus // n_workers)
+    print(f"Reading {len(bams)} BAM file(s) in {len(chunks)} chunks "
+          f"({n_workers} workers x {threads} decompression thread(s))")
+
+    # only membership is checked in the workers, so ship a sorted position array rather than the
+    # full dict: joblib memory-maps large arrays instead of pickling a copy for every chunk
+    snp_pos = np.fromiter(snp_info, dtype=np.int64, count=len(snp_info))
+    snp_pos.sort()
+    # chunks come back in submission order, so merging below matches a serial read
+    partials = Parallel(n_jobs=n_workers, backend='loky')(
+        delayed(_read_bam_single)(bam, snp_pos, filtered_cells, chrom, start, end, threads)
+        for bam, start, end in chunks
+    )
 
     umis = {}
     cell2allele = {}
@@ -209,13 +258,18 @@ def make_results(cell_ids, score, score_array):
         '''Calculate binomial p-values for each cell.'''
         p_value = []
         for i, s in enumerate(score):
+            # only count bootstraps where the cell passed filtering (non-NaN score)
+            n_trials = int((~np.isnan(score_array[:, i])).sum())
             if s > 0:
                 n = (score_array[:, i] > 0).sum()
             elif s < 0:
                 n = (score_array[:, i] < 0).sum()
-            elif s == 0:
+            else:
                 n = 0
-            p_value.append(binomtest(n, score_array.shape[0], 0.5, alternative='greater').pvalue)
+            if n_trials == 0:
+                p_value.append(1.0)
+            else:
+                p_value.append(binomtest(int(n), n_trials, 0.5, alternative='greater').pvalue)
 
         p_value = np.array(p_value)
         _, p_adj, _, _ = multipletests(p_value, alpha=0.05, method='fdr_bh')

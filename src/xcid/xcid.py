@@ -41,7 +41,7 @@ class XCID:
     verbose: int = 2
 
     # simulated annealing parameters
-    temp: Optional[int] = None # initial temperature
+    temp: Optional[float] = None # initial temperature
     alpha: Optional[float] = None # cooling rate
     max_iter: Optional[int] = None # maximum iterations
     n_init: int = 10 # number of initializations
@@ -79,7 +79,7 @@ class XCID:
     def load_data(self) -> "XCID":
         '''Load and preprocess data from VCF and BAM files.'''
         if self.cells is not None:
-            self.filtered_cells = np.loadtxt(self.cells, dtype=str)
+            self.filtered_cells = np.loadtxt(self.cells, dtype=str, ndmin=1)
 
         self.snp_info = load_vcf(self.vcf,
                                  chrom=self.chrom,
@@ -108,7 +108,6 @@ class XCID:
         '''Assign haplotypes using simulated annealing.'''
 
         self._require(self.counts_ref is not None, "Call load_data() first.")
-        # Derive a child seed for this stage to keep streams independent
 
         self.best_assignment, self.best_cost, self.sa_score = simulated_annealing(
             self.counts_ref,
@@ -148,14 +147,16 @@ class XCID:
     def results_table(self) -> pd.DataFrame:
         '''Return a table of results with columns: cell, score, p_value, p_adj, XCI_status.'''
         self._require(self.sa_score is not None, "Call assign_haplotypes() first.")
+        self._require(self.score_array is not None, "Call estimate_confidence() first.")
         results = make_results(cell_ids=self.cell_ids,
                                     score=self.sa_score,
                                     score_array=self.score_array
                                     )
 
         if results['XCI_status'].isin(['X0', 'X1']).sum()/len(results) < 0.2:
-            log.warning("Less than 20%% of cells were confidently assigned."
-                        "This may indicate low data quality: **consider increasing n_boot to 500 or 1000**")
+            log.warning("Less than 20%% of cells were confidently assigned. "
+                        "This may indicate low data quality: **consider increasing n_boot (currently %d)**",
+                        self.n_boot)
 
         self.results = results
         return self.results
@@ -226,6 +227,8 @@ class XCID:
 
     def filtered_haplotype_matrices(self) -> Tuple[np.ndarray, np.ndarray]:
         '''Return haplotype count matrices (n_filtered_cells x n_snps) for reference and alternate alleles.'''
+        self._require(self.best_assignment is not None, "Call assign_haplotypes() first.")
+        self._require(self.results is not None, "Call results_table() first.")
         filt_hap0_counts, filt_hap1_counts = make_haplotype_matrices(
             self.best_assignment,
             self.counts_ref,
