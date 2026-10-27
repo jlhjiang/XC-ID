@@ -46,6 +46,17 @@ def load_vcf(vcf, blacklist=frozenset(), chrom='chrX'):
     return snp_info
 
 
+def _open_bam(bam, threads=1):
+    '''Open a BAM, silencing htslib's "index file is older than the data file" warning, which
+    would otherwise print once per chunk. Verbosity is only lowered while the index loads, so
+    warnings raised while reading still show.'''
+    old_verbosity = pysam.set_verbosity(0)
+    try:
+        return pysam.AlignmentFile(bam, "rb", threads=threads)
+    finally:
+        pysam.set_verbosity(old_verbosity)
+
+
 # size of the chromosome chunks read in parallel by read_bam
 BAM_CHUNK_SIZE = 5_000_000
 # SNP lookups past the chunk end within this distance (e.g. spliced reads) use a set;
@@ -74,7 +85,7 @@ def _read_bam_single(bam, snp_pos, filtered_cells, chrom, start, end, threads=1)
         i = np.searchsorted(snp_pos, posx)
         return i < len(snp_pos) and snp_pos[i] == posx
 
-    with pysam.AlignmentFile(bam, "rb", threads=threads) as samfile:
+    with _open_bam(bam, threads=threads) as samfile:
         # fetch reads on chromosome (or region)
         for read in samfile.fetch(chrom, start, end):
             # reads spanning the chunk start belong to the previous chunk
@@ -189,7 +200,7 @@ def _bam_chunks(bams, chrom, chunk_size=BAM_CHUNK_SIZE):
     '''Split `chrom` in each BAM into (bam, start, end) regions, in file then genomic order.'''
     chunks = []
     for bam in bams:
-        with pysam.AlignmentFile(bam, "rb") as samfile:
+        with _open_bam(bam) as samfile:
             length = samfile.get_reference_length(chrom)
         for start in range(0, length, chunk_size):
             chunks.append((bam, start, min(start + chunk_size, length)))
