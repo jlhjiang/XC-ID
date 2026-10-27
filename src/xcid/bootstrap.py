@@ -44,7 +44,7 @@ def bootstrap_once(k: int,
 def bootstrap_variants(pos4phasing: list,
                         counts_ref: np.ndarray, counts_alt: np.ndarray,
                         obs_assignment: np.ndarray,
-                        n_boot=1000,
+                        n_boot=100,
                         min_per_cell=2,
                         n_jobs=-1,  # total - 1 number of jobs
                         verbose=2,

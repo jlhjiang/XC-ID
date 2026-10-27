@@ -90,7 +90,7 @@ You can also finetune the haplotype counts matrices by providing a filtered cell
 | Chromosome | `chrom` | `--chrom` | Chromosome name as it appears in the BAM/VCF (default: `chrX`) |
 | Filtered cells | `cells` | `--cells` | Allowed cell barcodes for constructing the counts matrices |
 | Number of random initializations | `n_init` | `--n-init` | Default = 10 (main phasing; the lowest-energy configuration is kept) |
-| Number of bootstraps | `n_boot` | `--n-boot` | Default = 1000 (each bootstrap reruns the phasing from a single random initialization) |
+| Number of bootstraps | `n_boot` | `--n-boot` | Default = 100 (each bootstrap reruns the phasing from a single random initialization) |
 | Number of parallel jobs | `n_jobs` | `--n-jobs` | Default = -1 (use all available cores); also parallelizes reading multiple BAM files |
 | Random seed | `seed` | `--seed` | Ensures reproducibility |
 | Min UMIs per SNP | `min_per_snp` | `--min-per-snp` | Minimum UMIs covering a SNP to keep it for phasing (default: 5) |
